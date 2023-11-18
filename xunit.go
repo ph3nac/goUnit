@@ -11,36 +11,66 @@ func assert(b bool) {
 	}
 }
 
+// ================== TestCase ==================
 type TestCase struct {
 	name string
 }
 
-func (t *TestCase) run(i interface{}) {
-	var method = reflect.ValueOf(i).MethodByName(t.name)
-	method.Call([]reflect.Value{})
+func (t *TestCase) setUp() {}
+
+func (t *TestCase) run(instance interface{ setUp() }) {
+	instance.setUp()
+	var method = reflect.ValueOf(instance).MethodByName(t.name)
+	if method.IsValid() {
+		method.Call([]reflect.Value{})
+	} else {
+		panic("Method not found")
+	}
 }
+
+// ================== WasRun ==================
 
 type WasRun struct {
 	TestCase
-	WasRun bool
+	wasRun   bool
+	wasSetUp bool
 }
 
 func (w *WasRun) TestMethod() {
-	w.WasRun = true
+	w.wasRun = true
 }
+
+func (w *WasRun) setUp() {
+	w.wasRun = false
+	w.wasSetUp = true
+}
+
+// ================== TestCaseTest ==================
 
 type TestCaseTest struct {
 	TestCase
+	test *WasRun
+}
+
+func (t *TestCaseTest) setUp() {
+	t.test = &WasRun{TestCase: TestCase{name: "TestMethod"}}
 }
 
 func (t *TestCaseTest) TestRunning() {
-	var test = &WasRun{TestCase: TestCase{name: "TestMethod"}}
-	assert(!test.WasRun)
-	test.run(test)
-	assert(test.WasRun)
+	t.test.run(t.test)
+	assert(t.test.wasRun)
 }
 
+func (t *TestCaseTest) TestSetUp() {
+	t.test.run(t.test)
+	assert(t.test.wasSetUp)
+}
+
+// ================== main ==================
+
 func main() {
-	var test = &TestCaseTest{TestCase: TestCase{name: "TestRunning"}}
-	test.run(test)
+	var testRunning = &TestCaseTest{TestCase: TestCase{name: "TestRunning"}}
+	testRunning.run(testRunning)
+	var testSetUp = &TestCaseTest{TestCase: TestCase{name: "TestSetUp"}}
+	testSetUp.run(testSetUp)
 }
