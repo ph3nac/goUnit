@@ -1,9 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 )
+
+func assert(b bool) {
+	if !b {
+		var errorMessage = ("Assertion failed")
+		panic(errorMessage)
+	}
+}
+
+type TestCase struct {
+	name string
+}
+
+func (t *TestCase) run(i interface{}) {
+	var method = reflect.ValueOf(i).MethodByName(t.name)
+	method.Call([]reflect.Value{})
+}
 
 type WasRun struct {
 	TestCase
@@ -14,40 +29,18 @@ func (w *WasRun) TestMethod() {
 	w.WasRun = true
 }
 
-type TestCase struct {
-	name string
-}
-
-func (t *TestCase) Run(i interface{}) error {
-	var method = reflect.ValueOf(i).MethodByName(t.name)
-	if !method.IsValid() {
-		return fmt.Errorf("method not found: %s", t.name)
-	}
-	method.Call([]reflect.Value{})
-	return nil
-}
-
 type TestCaseTest struct {
+	TestCase
 }
 
-func assert(b bool) {
-	if !b {
-		var errorMessage = ("Assertion failed")
-		panic(errorMessage)
-	}
-}
-
-func (tct *TestCaseTest) TestRunning() {
+func (t *TestCaseTest) TestRunning() {
 	var test = &WasRun{TestCase: TestCase{name: "TestMethod"}}
-	assert(test.WasRun)
-	var err = test.Run(test)
-	if err != nil {
-		println(err.Error())
-	}
+	assert(!test.WasRun)
+	test.run(test)
 	assert(test.WasRun)
 }
 
 func main() {
-	tcc := &TestCaseTest{}
-	tcc.TestRunning()
+	var test = &TestCaseTest{TestCase: TestCase{name: "TestRunning"}}
+	test.run(test)
 }
