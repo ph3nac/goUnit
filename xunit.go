@@ -18,7 +18,12 @@ type TestCase struct {
 
 func (t *TestCase) setUp() {}
 
-func (t *TestCase) run(instance interface{ setUp() }) {
+func (t *TestCase) tearDown() {}
+
+func (t *TestCase) run(instance interface {
+	setUp()
+	tearDown()
+}) {
 	instance.setUp()
 	var method = reflect.ValueOf(instance).MethodByName(t.name)
 	if method.IsValid() {
@@ -26,51 +31,43 @@ func (t *TestCase) run(instance interface{ setUp() }) {
 	} else {
 		panic("Method not found")
 	}
+	instance.tearDown()
 }
 
 // ================== WasRun ==================
 
 type WasRun struct {
 	TestCase
-	wasRun   bool
-	wasSetUp bool
+	log string
 }
 
 func (w *WasRun) TestMethod() {
-	w.wasRun = true
+	w.log += "TestMethod "
 }
 
 func (w *WasRun) setUp() {
-	w.wasRun = false
-	w.wasSetUp = true
+	w.log = "setUp "
+}
+
+func (w *WasRun) tearDown() {
+	w.log += "tearDown "
 }
 
 // ================== TestCaseTest ==================
 
 type TestCaseTest struct {
 	TestCase
-	test *WasRun
 }
 
-func (t *TestCaseTest) setUp() {
-	t.test = &WasRun{TestCase: TestCase{name: "TestMethod"}}
-}
-
-func (t *TestCaseTest) TestRunning() {
-	t.test.run(t.test)
-	assert(t.test.wasRun)
-}
-
-func (t *TestCaseTest) TestSetUp() {
-	t.test.run(t.test)
-	assert(t.test.wasSetUp)
+func (t *TestCaseTest) TestTemplateMethod() {
+	test := &WasRun{TestCase: TestCase{name: "TestMethod"}}
+	test.run(test)
+	assert("setUp TestMethod tearDown " == test.log)
 }
 
 // ================== main ==================
 
 func main() {
-	var testRunning = &TestCaseTest{TestCase: TestCase{name: "TestRunning"}}
-	testRunning.run(testRunning)
-	var testSetUp = &TestCaseTest{TestCase: TestCase{name: "TestSetUp"}}
-	testSetUp.run(testSetUp)
+	var testTemplateMethod = &TestCaseTest{TestCase: TestCase{name: "TestTemplateMethod"}}
+	testTemplateMethod.run(testTemplateMethod)
 }
